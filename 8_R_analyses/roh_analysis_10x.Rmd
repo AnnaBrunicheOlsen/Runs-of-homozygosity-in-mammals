@@ -1,0 +1,141 @@
+---
+title: "ROH Analysis 10x"
+author: "Anna Brueniche-Olsen and Ken Kellner"
+output: pdf_document
+---
+
+```{r,echo=F}
+
+setwd('8_R_analyses')
+source('gen_filepath.R')
+
+roh20 <- read.csv(datapath('roh10X_full.csv'),header=T)
+roh20$mean.ROH.length..Kbp.[roh20$mean.ROH.length..Kbp.=='#DIV/0!'] <- NA
+
+#Generate response variables (log-transform)
+het <- log(roh20$hetero)
+
+numrohs <- log(roh20$ROHnumber+1)
+#numrohs[which(is.infinite(numrohs))] <- NA
+
+lenrohs <- log(as.numeric(as.character(roh20$mean.ROH.length..Kbp.))+1)
+#lenrohs[which(is.infinite(lenrohs))] <- NA
+
+proprohs <- log((roh20$SNVROHnumber+1)/(roh20$sites+1))
+#proprohs[which(is.infinite(proprohs))] <- NA
+
+
+#Test normality
+# shapiro.test(het)
+# shapiro.test(numrohs) #Fails
+# shapiro.test(lenrohs)
+# shapiro.test(proprohs) #Fails
+
+#Clean up covariates
+redlist <- relevel(roh20$Red_list_groups,ref='N')
+diet <- relevel(roh20$Class.of.Consumption,ref='O')
+lat <- scale(abs(roh20$lat))
+mass <- scale(log(roh20$mass))
+
+cutoff1 <- 1000
+cutoff2 <- 100000
+masscat <- rep(NA,length(mass))
+masscat[roh20$mass<cutoff1] <- 'S'
+masscat[roh20$mass>=cutoff1&roh20$mass<cutoff2] <- 'M'
+masscat[roh20$mass>=cutoff2] <- 'L'
+masscat <- as.factor(masscat)
+masscat <- relevel(masscat,ref='S')
+
+#Build complete dataset
+data <- data.frame(het=het,numrohs=numrohs,lenrohs=lenrohs,proprohs=proprohs,
+                   redlist=redlist,diet=diet,lat=lat,mass=mass,masscat=masscat)
+
+####################
+```
+
+# Heterozygosity
+
+Multiple regression output:
+
+```{r,echo=F}
+data.sub <- data[data$redlist!='D',] #Remove species w/out data
+data.sub$redlist <- factor(data.sub$redlist)
+
+test = lm(het~lat+mass+diet*redlist,data=data.sub)
+#summary(test)
+
+knitr::kable(summary(test)$coefficients,digits=3)
+```
+
+# Mean ROH Length
+
+Multiple regression output:
+
+```{r,echo=F}
+data.sub <- data[data$redlist!='D',] #Remove species w/out data
+data.sub$redlist <- factor(data.sub$redlist)
+
+test = lm(lenrohs~lat+mass+diet*redlist,data=data.sub)
+
+knitr::kable(summary(test)$coefficients,digits=3)
+```
+
+
+\pagebreak
+
+
+# Number of ROHs
+
+Kruskal-Wallis test for threatened status effect:
+
+```{r,echo=F}
+data.sub <- data[data$redlist!='D',] #Remove species w/out data
+data.sub$redlist <- factor(data.sub$redlist)
+kruskal.test(data.sub$numrohs,data.sub$redlist)
+````
+
+Kruskal-Wallis test for diet class effect:
+
+```{r,echo=F}
+kruskal.test(data$numrohs,data$diet)
+````
+
+Spearman's rank correlation test for body mass effect:
+
+```{r,echo=F}
+cor.test(data$numrohs,data$mass,method='spearman')
+````
+
+Spearman's rank correlation test for latitude effect:
+
+```{r,echo=F}
+cor.test(data$numrohs,data$lat,method='spearman')
+````
+
+# Proportion of SNVs in ROHs
+
+Kruskal-Wallis test for threatened status effect:
+
+```{r,echo=F}
+data.sub <- data[data$redlist!='D',] #Remove species w/out data
+data.sub$redlist <- factor(data.sub$redlist)
+kruskal.test(data.sub$proprohs,data.sub$redlist)
+````
+
+Kruskal-Wallis test for diet class effect:
+
+```{r,echo=F}
+kruskal.test(data$proprohs,data$diet)
+````
+
+Spearman's rank correlation test for body mass effect:
+
+```{r,echo=F}
+cor.test(data$proprohs,data$mass,method='spearman')
+````
+
+Spearman's rank correlation test for latitude effect:
+
+```{r,echo=F}
+cor.test(data$proprohs,data$lat,method='spearman')
+````
