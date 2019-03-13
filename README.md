@@ -1,5 +1,6 @@
 # Runs-of-homozygosity
-These scripts are developed for the Runs-of-Homozygosity project.
+These scripts were developted for Brüniche-Olsen et al. (2018) https://doi.org/10.1007/s10592-018-1099-y.
+
 
 May 2017
 
